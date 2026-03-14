@@ -1,0 +1,69 @@
+# ============================================================
+# samples/before/ci.yml
+# ============================================================
+# ❌ INSECURE "BEFORE" PIPELINE — DO NOT USE IN PRODUCTION
+#
+# This file intentionally contains every issue the auditor
+# detects.  Run `cicd-audit run samples/` to see the full
+# report with all findings.
+# ============================================================
+
+name: Build and Deploy (INSECURE EXAMPLE)
+
+on:
+  push:                          # ❌ No branch filter — runs on ALL branches
+    branches: ["*"]
+  # ❌ No pull_request trigger — zero CI gate before merging
+
+# ❌ No permissions block — uses GitHub's org default (often write-all)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # ❌ No timeout-minutes — can run for up to 6 hours if it hangs
+
+    steps:
+      # ❌ Unversioned action — @main is mutable, supply-chain risk
+      - uses: actions/checkout@main
+
+      - name: Set up Python
+        # ❌ Another unversioned action
+        uses: actions/setup-python@master
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # ❌ Hardcoded secret — anyone with read access sees this
+      - name: Configure AWS
+        env:
+          AWS_ACCESS_KEY_ID: AKIAIOSFODNN7EXAMPLE
+          AWS_SECRET_ACCESS_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+        run: aws s3 sync . s3://my-bucket
+
+      # ❌ Another hardcoded secret in a run block
+      - name: Notify Slack
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data '{"text":"Build done"}' \
+          https://hooks.example.com/services/TXXXXXXXXX/BXXXXXXXXX/XXXXXXXXXXXXXXXXXXXXXXXX
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    # ❌ No timeout-minutes
+    # ❌ Overly broad permissions
+    permissions: write-all
+
+    steps:
+      # ❌ Unversioned action
+      - uses: actions/checkout@latest
+
+      - name: Deploy to production
+        # ❌ Hardcoded API token in environment variable
+        env:
+          API_TOKEN: sk-ant-api03-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        run: |
+          echo "Deploying..."
+          ./deploy.sh
+
+  # ❌ No test job anywhere in this workflow

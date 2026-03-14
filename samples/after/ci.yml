@@ -1,0 +1,132 @@
+# ============================================================
+# samples/after/ci.yml
+# ============================================================
+# ✅ SECURE "AFTER" PIPELINE — Industry best-practice template
+#
+# Every issue from samples/before/ci.yml has been remediated.
+# Run `cicd-audit run samples/after/` to confirm a near-perfect score.
+# ============================================================
+
+name: CI/CD Pipeline (Secure)
+
+on:
+  # ✅ PR trigger ensures CI runs before any merge
+  pull_request:
+    branches: [main]
+  # ✅ Push trigger only on the default branch
+  push:
+    branches: [main]
+
+# ✅ Minimal top-level permissions (principle of least privilege)
+permissions:
+  contents: read
+
+jobs:
+
+  # ── 1. Test gate ──────────────────────────────────────────────────────
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15              # ✅ Explicit timeout
+
+    # ✅ Fine-grained job-level permissions
+    permissions:
+      contents: read
+
+    steps:
+      # ✅ Pinned to an exact semver tag (use SHA in highest-security contexts)
+      - name: Checkout code
+        uses: actions/checkout@v4.1.7
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.1.1
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # ✅ Test gate — downstream jobs `needs: [test]` so this blocks deploys
+      - name: Run test suite
+        run: pytest --tb=short -q
+
+      - name: Run linter
+        run: ruff check .
+
+  # ── 2. Security scan ─────────────────────────────────────────────────
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10             # ✅ Timeout
+
+    permissions:
+      contents: read
+      security-events: write        # Only the scope this job needs
+
+    steps:
+      - uses: actions/checkout@v4.1.7
+
+      - name: Run Gitleaks (secret scan)
+        uses: gitleaks/gitleaks-action@v2.3.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # ✅ Secrets from store
+
+  # ── 3. Build ─────────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20             # ✅ Timeout
+    needs: [test, security]         # ✅ Build is gated on test + security
+
+    permissions:
+      contents: read
+      packages: write               # Only for pushing to GHCR
+
+    steps:
+      - uses: actions/checkout@v4.1.7
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4.0.2
+        with:
+          # ✅ All secrets come from the GitHub secrets store — never hardcoded
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            us-east-1
+
+      - name: Sync to S3
+        run: aws s3 sync ./dist s3://my-bucket --delete
+
+      - name: Send Slack notification
+        if: success()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: '{"text":"✅ Build ${{ github.sha }} succeeded on ${{ github.ref_name }}"}'
+        env:
+          # ✅ Webhook URL stored in secrets, not hardcoded
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ── 4. Deploy (production — only on push to main) ────────────────────
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30             # ✅ Timeout
+    needs: [build]                  # ✅ Only runs after a successful build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    environment:
+      name: production              # ✅ Uses GitHub Environments (adds approval gate)
+      url:  https://my-app.example.com
+
+    permissions:
+      contents: read
+      id-token: write               # For OIDC-based cloud auth (best practice)
+
+    steps:
+      - uses: actions/checkout@v4.1.7
+
+      - name: Deploy
+        env:
+          # ✅ Secret from GitHub Environments secrets
+          API_TOKEN: ${{ secrets.DEPLOY_API_TOKEN }}
+        run: ./deploy.sh

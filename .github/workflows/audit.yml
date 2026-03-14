@@ -1,0 +1,122 @@
+# ============================================================
+# .github/workflows/audit.yml
+# ============================================================
+# The framework audits ITSELF on every PR.
+#
+# Two jobs:
+#   1. audit   — runs cicd-audit and uploads the HTML report as
+#                a workflow artefact so reviewers can download it
+#   2. test    — runs the full pytest suite with coverage
+#
+# The audit job uses --fail-below 70 so a PR that introduces
+# major security regressions will block the pipeline.
+# ============================================================
+
+name: CI/CD Audit + Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+
+  # ── Self-audit ───────────────────────────────────────────────────────
+  audit:
+    name: Self-Audit Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.7
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.1.1
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install cicd-audit-framework
+        run: pip install -e .
+
+      - name: Run audit on this repo
+        # --fail-below 70 blocks the PR if major regressions are introduced.
+        # Adjust the threshold as your pipeline matures.
+        run: |
+          cicd-audit run . \
+            --output audit-report.html \
+            --json \
+            --fail-below 70
+
+      - name: Upload audit report
+        if: always()    # upload even if --fail-below triggered
+        uses: actions/upload-artifact@v4.3.4
+        with:
+          name: audit-report-${{ github.sha }}
+          path: |
+            audit-report.html
+            audit-report.json
+          retention-days: 30
+
+      - name: Print JSON summary to logs
+        if: always()
+        run: |
+          if [ -f audit-report.json ]; then
+            echo "=== Audit Summary ==="
+            python - <<'EOF'
+          import json, sys
+          with open("audit-report.json") as f:
+              d = json.load(f)
+          print(f"Score : {d['score']}/100  ({d['grade']} – {d['grade_label']})")
+          print(f"Issues: {d['summary']['total']} total "
+                f"({d['summary']['critical']} critical, "
+                f"{d['summary']['high']} high, "
+                f"{d['summary']['medium']} medium, "
+                f"{d['summary']['low']} low)")
+          EOF
+          fi
+
+  # ── Test suite ───────────────────────────────────────────────────────
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.7
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5.1.1
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install package + dev dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run tests with coverage
+        run: |
+          pytest tests/ \
+            --tb=short \
+            --cov=cicd_auditor \
+            --cov-report=term-missing \
+            --cov-fail-under=70
+
+      - name: Run linter
+        run: ruff check cicd_auditor/

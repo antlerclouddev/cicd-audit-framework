@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CI/CD Audit Report — before</title>
+  <style>
+    /* ── Reset & base ────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #161a23;
+      --surface2:  #1e2330;
+      --border:    #2a2f3e;
+      --text:      #cdd6f4;
+      --muted:     #6c7086;
+      --accent:    #89b4fa;
+
+      --critical:  #f38ba8;
+      --high:      #fab387;
+      --medium:    #f9e2af;
+      --low:       #a6e3a1;
+      --info:      #89dceb;
+
+      --critical-bg: rgba(243,139,168,0.08);
+      --high-bg:     rgba(250,179,135,0.08);
+      --medium-bg:   rgba(249,226,175,0.08);
+      --low-bg:      rgba(166,227,161,0.08);
+    }
+
+    body {
+      font-family: 'Courier New', 'Lucida Console', monospace;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────────── */
+    .page { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    /* ── Header ──────────────────────────────────────────────────────── */
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2rem;
+      margin-bottom: 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .header-left .logo {
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .header-left h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+    .header-left .meta {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+    }
+    .header-right { text-align: right; }
+    .generated { font-size: 0.72rem; color: var(--muted); }
+
+    /* ── Score hero ──────────────────────────────────────────────────── */
+    .score-hero {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 2rem;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2rem 2.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .score-circle {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      flex-shrink: 0;
+    }
+    .score-circle svg { transform: rotate(-90deg); }
+    .score-circle .score-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .score-number { font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1; }
+    .score-max    { font-size: 0.7rem;  color: var(--muted); }
+    .score-grade  {
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-top: 0.25rem;
+    }
+
+    .score-details h2 { font-size: 1.1rem; color: #fff; margin-bottom: 0.5rem; }
+    .score-details p  { font-size: 0.85rem; color: var(--muted); margin-bottom: 1rem; }
+
+    .severity-pills { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+    .pill-critical { background: var(--critical-bg); color: var(--critical); border: 1px solid var(--critical); }
+    .pill-high     { background: var(--high-bg);     color: var(--high);     border: 1px solid var(--high);     }
+    .pill-medium   { background: var(--medium-bg);   color: var(--medium);   border: 1px solid var(--medium);   }
+    .pill-low      { background: var(--low-bg);      color: var(--low);      border: 1px solid var(--low);      }
+
+    /* ── Section headings ────────────────────────────────────────────── */
+    .section-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Files audited ───────────────────────────────────────────────── */
+    .files-list {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 2.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .file-tag {
+      font-size: 0.75rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.2rem 0.6rem;
+      color: var(--accent);
+    }
+
+    /* ── Findings table ──────────────────────────────────────────────── */
+    .findings-section { margin-bottom: 3rem; }
+
+    .finding-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 1px;
+      overflow: hidden;
+    }
+    .finding-card:first-of-type { border-radius: 6px 6px 0 0; }
+    .finding-card:last-of-type  { border-radius: 0 0 6px 6px; }
+    .finding-card:only-of-type  { border-radius: 6px; }
+
+    .finding-header {
+      display: grid;
+      grid-template-columns: 5.5rem 1fr auto;
+      align-items: center;
+      padding: 0.9rem 1.25rem;
+      cursor: pointer;
+      gap: 1rem;
+      transition: background 0.15s;
+    }
+    .finding-header:hover { background: var(--surface2); }
+
+    .finding-id   { font-size: 0.7rem; color: var(--muted); font-weight: 600; }
+    .finding-title{ font-size: 0.88rem; color: #fff; font-weight: 500; }
+    .finding-file { font-size: 0.7rem;  color: var(--muted); }
+
+    .badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+    .badge-CRITICAL { background: var(--critical-bg); color: var(--critical); border: 1px solid var(--critical); }
+    .badge-HIGH     { background: var(--high-bg);     color: var(--high);     border: 1px solid var(--high);     }
+    .badge-MEDIUM   { background: var(--medium-bg);   color: var(--medium);   border: 1px solid var(--medium);   }
+    .badge-LOW      { background: var(--low-bg);      color: var(--low);      border: 1px solid var(--low);      }
+
+    .finding-body {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding: 1.25rem;
+      background: var(--bg);
+      font-size: 0.82rem;
+    }
+    .finding-body.open { display: block; }
+
+    .finding-body dl {
+      display: grid;
+      grid-template-columns: 7rem 1fr;
+      gap: 0.5rem 1rem;
+    }
+    .finding-body dt { color: var(--muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; padding-top: 0.15rem; }
+    .finding-body dd { color: var(--text); white-space: pre-wrap; word-break: break-word; }
+
+    .evidence-block {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.78rem;
+      color: var(--critical);
+      margin-top: 0.25rem;
+      overflow-x: auto;
+    }
+
+    .remediation-block {
+      background: rgba(166,227,161,0.05);
+      border: 1px solid rgba(166,227,161,0.2);
+      border-radius: 4px;
+      padding: 0.75rem 0.9rem;
+      color: var(--low);
+      white-space: pre-wrap;
+      font-size: 0.78rem;
+      margin-top: 0.25rem;
+      overflow-x: auto;
+    }
+
+    /* ── No findings ─────────────────────────────────────────────────── */
+    .no-findings {
+      text-align: center;
+      padding: 3rem;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .no-findings .checkmark { font-size: 2rem; margin-bottom: 0.5rem; }
+
+    /* ── Footer ──────────────────────────────────────────────────────── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    /* ── Score gauge colours ─────────────────────────────────────────── */
+    .gauge-stroke { stroke: #f38ba8; }
+    .grade-color  { color: #f38ba8; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ──────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">cicd-audit-framework</div>
+      <h1>Pipeline Security Report</h1>
+      <div class="meta">/home/iochieng/projects/projects/cicd-audit-framework/samples/before</div>
+    </div>
+    <div class="header-right">
+      <div class="generated">Generated 2026-03-14 10:57 UTC</div>
+    </div>
+  </header>
+
+  <!-- ── Score hero ──────────────────────────────────────────────────── --><div class="score-hero">
+    <div class="score-circle">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#2a2f3e" stroke-width="10"/>
+        <circle cx="60" cy="60" r="52" fill="none"
+          class="gauge-stroke"
+          stroke-width="10"
+          stroke-linecap="round"
+          stroke-dasharray="0.0 326.73"
+        />
+      </svg>
+      <div class="score-text">
+        <span class="score-number">0</span>
+        <span class="score-max">/100</span>
+        <span class="score-grade grade-color">F</span>
+      </div>
+    </div>
+    <div class="score-details">
+      <h2>Critical Risk</h2>
+      <p>
+        12 issues found across
+        1 pipeline file.
+          This pipeline has significant security or efficiency gaps that should be addressed before production use.
+      </p>
+      <div class="severity-pills">
+        <span class="pill pill-critical">&#9679; 3 Critical</span>
+        <span class="pill pill-high">&#9679; 5 High</span>
+        <span class="pill pill-medium">&#9679; 3 Medium</span>
+        <span class="pill pill-low">&#9679; 1 Low</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Files audited ────────────────────────────────────────────────── -->
+  <div class="section-title">Files Audited</div>
+  <div class="files-list">
+      <span class="file-tag">/home/iochieng/projects/projects/cicd-audit-framework/samples/before/.github/workflows/ci.yml</span>
+  </div>
+
+  <!-- ── Findings ────────────────────────────────────────────────────── -->
+  <div class="section-title">Findings</div>
+  <div class="findings-section">
+    <div class="finding-card">
+      <div class="finding-header" onclick="toggle(this)">
+        <span class="finding-id">SEC-001</span>
+        <span>
+          <div class="finding-title">Hardcoded Secret Detected</div>
+          <div class="finding-file">
+            .github/workflows/ci.yml · line 39          </div>
+        </span>
+        <span class="badge badge-CRITICAL">CRITICAL</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>What</dt>
+          <dd>Possible AWS Access Key ID found on line 39. Embedding secrets directly in workflow files exposes them to anyone with read access to the repository, including forks.</dd>
+
+          <dt>Evidence</dt>
+          <dd><div class="evidence-block">AWS_ACCESS_KEY_ID: AKIA**REDACTED**</div></dd>
+
+          <dt>Fix</dt>
+          <dd><div class="remediation-block">Move the value to GitHub Settings → Secrets and variables → Actions (or GitLab CI/CD → Variables) and reference it as ${{ secrets.MY_SECRET }} in your workflow.</div></dd>
+
+          <dt>Deduction</dt>
+          <dd style="color:var(--critical)">−25 points</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-header" onclick="toggle(this)">
+        <span class="finding-id">SEC-001</span>
+        <span>
+          <div class="finding-title">Hardcoded Secret Detected</div>
+          <div class="finding-file">
+            .github/workflows/ci.yml · line 40          </div>
+        </span>
+        <span class="badge badge-CRITICAL">CRITICAL</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>What</dt>
+          <dd>Possible Generic API key assignment found on line 40. Embedding secrets directly in workflow files exposes them to anyone with read access to the repository, including forks.</dd>
+
+          <dt>Evidence</dt>
+          <dd><div class="evidence-block">AWS_SECRET_ACCESS_KEY: wJal**REDACTED**</div></dd>
+
+          <dt>Fix</dt>
+          <dd><div class="remediation-block">Move the value to GitHub Settings → Secrets and variables → Actions (or GitLab CI/CD → Variables) and reference it as ${{ secrets.MY_SECRET }} in your workflow.</div></dd>
+
+          <dt>Deduction</dt>
+          <dd style="color:var(--critical)">−25 points</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-header" onclick="toggle(this)">
+        <span class="finding-id">SEC-001</span>
+        <span>
+          <div class="finding-title">Hardcoded Secret Detected</div>
+          <div class="finding-file">
+            .github/workflows/ci.yml · line 48          </div>
+        </span>
+        <span class="badge badge-CRITICAL">CRITICAL</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>What</dt>
+          <dd>Possible Slack Webhook URL found on line 48. Embedding secrets directly in workflow files exposes them to anyone with read access to the repository, including forks.</dd>
+
+          <dt>Evidence</dt>
+          <dd><div class="evidence-block">https://hook**REDACTED**</div></dd>
+
+          <dt>Fix</dt>
+          <dd><div class="remediation-block">Move the value to GitHub Settings → Secrets and variables → Actions (or GitLab CI/CD → Variables) and reference it as ${{ secrets.MY_SECRET }} in your workflow.</div></dd>
+
+          <dt>Deduction</dt>
+          <dd style="color:var(--critical)">−25 points</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-header" onclick="toggle(this)">
+        <span class="finding-id">SEC-002</span>
+        <span>
+          <div class="finding-title">Unversioned or Mutable Action Reference</div>
+          <div class="finding-file">
+            .github/workflows/ci.yml · line 27          </div>
+        </span>
+        <span class="badge badge-HIGH">HIGH</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>What</dt>
+          <dd>Action `actions/checkout@main` uses mutable branch reference '@main'. If the upstream action is compromised or its history is rewritten, your workflow will silently execute malicious code.</dd>
+
+          <dt>Evidence</dt>
+          <dd><div class="evidence-block">actions/checkout@main</div></dd>
+
+          <dt>Fix</dt>
+          <dd><div class="remediation-block">Pin to an immutable reference. Recommended fix:
+    uses: actions/checkout@<SHA>  # find the SHA on the action's releases page
+Use a tool like `pinact` or Dependabot to keep pins up-to-date.</div></dd>
+
+          <dt>Deduction</dt>
+          <dd style="color:var(--critical)">−15 points</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-header" onclick="toggle(this)">
+        <span class="finding-id">SEC-002</span>
+        <span>
+          <div class="finding-title">Unversioned or Mutable Action Reference</div>
+          <div class="finding-file">
+            .github/workflows/ci.yml · line 31          </div>
+        </span>
+        <span class="badge badge-HIGH">HIGH</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>What</dt>
+          <dd>Action `actions/setup-python@master` uses mutable branch reference '@master'. If the upstream action is compromised or its history is rewritten, your workflow will silently execute malicious code.</dd>
+
+          <dt>Evidence</dt>
+          <dd><div class="evidence-block">actions/setup-python@master</div></dd>
+
+          <dt>Fix</dt>
+          <dd><div class="remediation-block">Pin to an immutable reference. Recommended fix:
+    uses: actions/setup-python@<SHA>  # find the SHA on the action's releases page
+Use a tool like `pinact` or Dependabot to keep pins up-to-date.</div></dd>
+
+          <dt>Deduction</dt>
+          <dd style="color:var(--critical)">−15 points</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-header" onclick="toggle(this)">
+        <span class="finding-id">SEC-002</span>
+        <span>
+          <div class="finding-title">Unversioned or Mutable Action Reference</div>
+          <div class="finding-file">
+            .github/workflows/ci.yml · line 59          </div>
+        </span>
+        <span class="badge badge-HIGH">HIGH</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>What</dt>
+          <dd>Action `actions/checkout@latest` uses mutable branch reference '@latest'. If the upstream action is compromised or its history is rewritten, your workflow will silently execute malicious code.</dd>
+
+          <dt>Evidence</dt>
+          <dd><div class="evidence-block">actions/checkout@latest</div></dd>
+
+          <dt>Fix</dt>
+          <dd><div class="remediation-block">Pin to an immutable reference. Recommended fix:
+    uses: actions/checkout@<SHA>  # find the SHA on the action's releases page
+Use a tool like `pinact` or Dependabot to keep pins up-to-date.</div></dd>
+
+          <dt>Deduction</dt>
+          <dd style="color:var(--critical)">−15 points</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-header" onclick="toggle(this)">
+        <span class="finding-id">SEC-003</span>
+        <span>
+          <div class="finding-title">Overly Broad Workflow Permissions</div>
+          <div class="finding-file">
+            .github/workflows/ci.yml · line 50          </div>
+        </span>
+        <span class="badge badge-HIGH">HIGH</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>What</dt>
+          <dd>`permissions: write-all` at job `deploy` grants all token scopes</dd>
+
+          <dt>Evidence</dt>
+          <dd><div class="evidence-block">jobs.deploy.permissions: write-all</div></dd>
+
+          <dt>Fix</dt>
+          <dd><div class="remediation-block">Restrict permissions for job `deploy` to only what it needs.</div></dd>
+
+          <dt>Deduction</dt>
+          <dd style="color:var(--critical)">−15 points</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-header" onclick="toggle(this)">
+        <span class="finding-id">EFF-001</span>
+        <span>
+          <div class="finding-title">No Test Gate Found in Pipeline</div>
+          <div class="finding-file">
+            .github/workflows/ci.yml          </div>
+        </span>
+        <span class="badge badge-HIGH">HIGH</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>What</dt>
+          <dd>No automated test job or test-runner command was detected in this pipeline. Without a test gate, code defects can merge undetected and be deployed directly to production.</dd>
+
+
+          <dt>Fix</dt>
+          <dd><div class="remediation-block">Add a dedicated test job.  Minimal example for GitHub Actions:
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install -r requirements.txt && pytest
+
+Ensure downstream jobs use `needs: [test]` so deployment is gated.</div></dd>
+
+          <dt>Deduction</dt>
+          <dd style="color:var(--critical)">−15 points</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-header" onclick="toggle(this)">
+        <span class="finding-id">SEC-003</span>
+        <span>
+          <div class="finding-title">Missing Top-Level Permissions Block</div>
+          <div class="finding-file">
+            .github/workflows/ci.yml          </div>
+        </span>
+        <span class="badge badge-MEDIUM">MEDIUM</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>What</dt>
+          <dd>No `permissions:` block is defined at the workflow level. Without explicit permissions, GitHub uses the repository default (often `write` to contents), which may be broader than needed.</dd>
+
+
+          <dt>Fix</dt>
+          <dd><div class="remediation-block">Add a top-level permissions block with the minimum required scopes:
+
+  permissions:
+    contents: read
+    # add only the scopes your workflow actually needs, e.g.:
+    # pull-requests: write   # to post PR comments
+    # packages: write        # to push to GHCR
+    # id-token: write        # for OIDC-based cloud auth</div></dd>
+
+          <dt>Deduction</dt>
+          <dd style="color:var(--critical)">−8 points</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-header" onclick="toggle(this)">
+        <span class="finding-id">SEC-004</span>
+        <span>
+          <div class="finding-title">No Pull-Request Trigger Defined</div>
+          <div class="finding-file">
+            .github/workflows/ci.yml          </div>
+        </span>
+        <span class="badge badge-MEDIUM">MEDIUM</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>What</dt>
+          <dd>This workflow has no `pull_request` trigger.  Without CI running on PRs, there is no automated quality gate before code is merged into the default branch.</dd>
+
+
+          <dt>Fix</dt>
+          <dd><div class="remediation-block">Add a pull_request trigger so CI runs on every proposed change:
+
+  on:
+    pull_request:
+      branches: [main]
+    push:
+      branches: [main]</div></dd>
+
+          <dt>Deduction</dt>
+          <dd style="color:var(--critical)">−8 points</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-header" onclick="toggle(this)">
+        <span class="finding-id">EFF-002</span>
+        <span>
+          <div class="finding-title">Job Missing timeout-minutes</div>
+          <div class="finding-file">
+            .github/workflows/ci.yml · line 21          </div>
+        </span>
+        <span class="badge badge-MEDIUM">MEDIUM</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>What</dt>
+          <dd>Job `build` does not define `timeout-minutes`. If this job hangs it will run for up to 6 hours (GitHub's hard limit), wasting runner minutes and blocking other pipeline runs.</dd>
+
+          <dt>Evidence</dt>
+          <dd><div class="evidence-block">jobs.build  (no timeout-minutes key)</div></dd>
+
+          <dt>Fix</dt>
+          <dd><div class="remediation-block">Add a timeout to job `build`:
+
+  build:
+    timeout-minutes: 15   # adjust to ~2× your median run time
+    runs-on: ubuntu-latest
+    steps: ...</div></dd>
+
+          <dt>Deduction</dt>
+          <dd style="color:var(--critical)">−8 points</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-header" onclick="toggle(this)">
+        <span class="finding-id">EFF-002</span>
+        <span>
+          <div class="finding-title">Job Missing timeout-minutes</div>
+          <div class="finding-file">
+            .github/workflows/ci.yml · line 50          </div>
+        </span>
+        <span class="badge badge-LOW">LOW</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>What</dt>
+          <dd>Job `deploy` does not define `timeout-minutes`. If this job hangs it will run for up to 6 hours (GitHub's hard limit), wasting runner minutes and blocking other pipeline runs.</dd>
+
+          <dt>Evidence</dt>
+          <dd><div class="evidence-block">jobs.deploy  (no timeout-minutes key)</div></dd>
+
+          <dt>Fix</dt>
+          <dd><div class="remediation-block">Add a timeout to job `deploy`:
+
+  deploy:
+    timeout-minutes: 15   # adjust to ~2× your median run time
+    runs-on: ubuntu-latest
+    steps: ...</div></dd>
+
+          <dt>Deduction</dt>
+          <dd style="color:var(--critical)">−3 points</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Footer ──────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <span>cicd-audit-framework &mdash; automated pipeline security analysis</span>
+    <span>Score: 0/100 &nbsp;|&nbsp; Grade: F (Critical Risk)</span>
+  </footer>
+
+</div>
+
+<script>
+  function toggle(header) {
+    const body = header.nextElementSibling;
+    body.classList.toggle('open');
+  }
+  // Auto-expand critical findings on load
+  document.querySelectorAll('.badge-CRITICAL').forEach(badge => {
+    badge.closest('.finding-card').querySelector('.finding-body').classList.add('open');
+  });
+</script>
+</body>
+</html>
