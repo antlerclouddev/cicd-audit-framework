@@ -193,24 +193,6 @@ cicd-audit-framework/
 
 ---
 
-## Using It as a Service
-
-This tool is designed to be your "CI/CD Pipeline Audit" consulting product.
-
-### Workflow
-
-1. **Get access** to the client's repo (read-only is enough)
-2. **Clone it** locally: `git clone https://github.com/client/repo.git`
-3. **Run the audit**: `cicd-audit run repo/ --output client-$(date +%Y%m%d).html --json`
-4. **Open the report** and review the findings before sending
-5. **Deliver the HTML report** — it's self-contained, no server needed
-6. **Optionally**, implement the fixes and run again to show improvement
-7. **Show the before/after score** as proof of value
-
-### Pricing Tiers (Example)
-
----
-
 ## Extending the Framework
 
 Adding a new check takes about 15 minutes:
