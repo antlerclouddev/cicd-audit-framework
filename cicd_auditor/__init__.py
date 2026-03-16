@@ -12,4 +12,4 @@ from .models import AuditReport, Finding, Severity
 from .reporter import render_html
 
 __version__ = "1.0.0"
-__all__     = ["Auditor", "render_html", "AuditReport", "Finding", "Severity"]
+__all__ = ["Auditor", "render_html", "AuditReport", "Finding", "Severity"]
