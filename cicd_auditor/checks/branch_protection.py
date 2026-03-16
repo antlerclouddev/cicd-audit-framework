@@ -35,9 +35,9 @@ WHY THIS MATTERS
 """
 
 from typing import Any
-from .base import BaseCheck
-from ..models import Finding, Severity
 
+from ..models import Finding, Severity
+from .base import BaseCheck
 
 _DEFAULT_BRANCHES = {"main", "master", "trunk", "develop", "production"}
 
@@ -59,7 +59,7 @@ class BranchProtectionCheck(BaseCheck):
 
         # ── 1. pull_request_target without explicit safety checks ──────────
         if "pull_request_target" in (on_block or {}):
-            prt = on_block.get("pull_request_target") or {}
+            on_block.get("pull_request_target") or {}
             # Dangerous if env or secrets are used without a caller check
             findings.append(Finding(
                 check_id    = self.ID,

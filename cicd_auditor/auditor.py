@@ -19,14 +19,13 @@ ERROR HANDLING PHILOSOPHY
     This matters in production: client repos may have partially-written files.
 """
 
-import os
 import glob
-import yaml
 from pathlib import Path
 
-from .models  import AuditReport, Finding, Severity
-from .checks  import ALL_CHECKS
+import yaml
 
+from .checks import ALL_CHECKS
+from .models import AuditReport, Finding, Severity
 
 # File globs we consider pipeline files, in priority order
 _GITHUB_GLOB  = ".github/workflows/*.y*ml"

@@ -28,8 +28,9 @@ RECOMMENDED VALUES
 """
 
 from typing import Any
-from .base import BaseCheck
+
 from ..models import Finding, Severity
+from .base import BaseCheck
 
 # Jobs whose names suggest they are allowed to run long (optional exception list)
 _LONG_RUNNING_KEYWORDS = {"deploy", "release", "publish", "migration"}

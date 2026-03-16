@@ -25,13 +25,14 @@ USAGE EXAMPLES
     cicd-audit run . --fail-below 80
 """
 
-import sys
 import json
-import click
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
-from . import Auditor, render_html, __version__
+import click
+
+from . import Auditor, __version__, render_html
 from .models import Severity
 
 # Severity ordering for --min-severity filtering

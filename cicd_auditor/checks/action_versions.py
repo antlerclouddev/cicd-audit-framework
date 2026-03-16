@@ -31,9 +31,9 @@ BAD REFERENCES
 
 import re
 from typing import Any
-from .base import BaseCheck
-from ..models import Finding, Severity
 
+from ..models import Finding, Severity
+from .base import BaseCheck
 
 # Matches a SHA-256 commit hash (40 hex chars)
 _SHA_RE   = re.compile(r'^[0-9a-f]{40}$')

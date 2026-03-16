@@ -35,9 +35,9 @@ WHAT DOES NOT COUNT
 
 import re
 from typing import Any
-from .base import BaseCheck
-from ..models import Finding, Severity
 
+from ..models import Finding, Severity
+from .base import BaseCheck
 
 _TEST_JOB_KEYWORDS = re.compile(
     r'\b(test|spec|lint|check|quality|verify|validation|coverage|unit|integration|e2e|qa)\b',

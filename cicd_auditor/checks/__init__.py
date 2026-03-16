@@ -12,12 +12,12 @@ WHY A REGISTRY?
     No other file needs to change.
 """
 
-from .secrets          import SecretsCheck
-from .action_versions  import ActionVersionsCheck
-from .test_gates       import TestGatesCheck
-from .permissions      import PermissionsCheck
-from .timeouts         import TimeoutsCheck
+from .action_versions import ActionVersionsCheck
 from .branch_protection import BranchProtectionCheck
+from .permissions import PermissionsCheck
+from .secrets import SecretsCheck
+from .test_gates import TestGatesCheck
+from .timeouts import TimeoutsCheck
 
 # Order matters for report presentation — security checks first, then efficiency
 ALL_CHECKS = [

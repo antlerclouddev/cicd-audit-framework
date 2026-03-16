@@ -34,9 +34,9 @@ REFERENCE
 """
 
 from typing import Any
-from .base import BaseCheck
-from ..models import Finding, Severity
 
+from ..models import Finding, Severity
+from .base import BaseCheck
 
 _WRITE_SHORTHAND = {"write-all", "write", "admin"}
 

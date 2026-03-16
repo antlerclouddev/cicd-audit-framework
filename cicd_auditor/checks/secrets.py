@@ -31,9 +31,9 @@ EVIDENCE REDACTION
 
 import re
 from typing import Any
-from .base import BaseCheck
-from ..models import Finding, Severity
 
+from ..models import Finding, Severity
+from .base import BaseCheck
 
 # ---------------------------------------------------------------------------
 # Pattern registry
@@ -105,9 +105,7 @@ _PLACEHOLDER_VALUE_RE = re.compile(
 def _is_safe_line(line: str) -> bool:
     if any(p.search(line) for p in _SAFE_ALWAYS):
         return True
-    if _PLACEHOLDER_VALUE_RE.search(line):
-        return True
-    return False
+    return bool(_PLACEHOLDER_VALUE_RE.search(line))
 
 
 def _redact(value: str) -> str:

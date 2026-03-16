@@ -9,8 +9,7 @@ enum.Enum makes JSON serialisation trivial and avoids import boilerplate in chec
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 # ---------------------------------------------------------------------------
@@ -53,8 +52,8 @@ class Finding:
     file_path:   str
     detail:      str
     remediation: str
-    line_number: Optional[int] = None
-    evidence:    Optional[str] = None
+    line_number: int | None = None
+    evidence:    str | None = None
 
     @property
     def weight(self) -> int:
@@ -76,7 +75,7 @@ class AuditReport:
     repo_path:    str
     audited_files: list[str]
     findings:     list[Finding] = field(default_factory=list)
-    generated_at: datetime      = field(default_factory=lambda: datetime.now(timezone.utc))
+    generated_at: datetime      = field(default_factory=lambda: datetime.now(UTC))
 
     # ------------------------------------------------------------------ #
     #  Computed properties (not stored — always derived from findings)    #
@@ -90,10 +89,14 @@ class AuditReport:
     @property
     def grade(self) -> str:
         s = self.score
-        if s >= 90: return "A"
-        if s >= 75: return "B"
-        if s >= 60: return "C"
-        if s >= 40: return "D"
+        if s >= 90:
+            return "A"
+        if s >= 75:
+            return "B"
+        if s >= 60:
+            return "C"
+        if s >= 40:
+            return "D"
         return "F"
 
     @property
