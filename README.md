@@ -209,12 +209,6 @@ This tool is designed to be your "CI/CD Pipeline Audit" consulting product.
 
 ### Pricing Tiers (Example)
 
-| Tier | What You Do | Price |
-|------|-------------|-------|
-| Basic | Run audit, deliver report, 30-min walkthrough call | $300–500 |
-| Standard | Audit + fix top 5 findings + PR | $800–1500 |
-| Ongoing | Monthly audits + remediation | $500–1000/mo |
-
 ---
 
 ## Extending the Framework
