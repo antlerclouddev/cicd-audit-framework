@@ -57,7 +57,7 @@ jobs:
           import json, sys
           with open("audit-report.json") as f:
               d = json.load(f)
-          print(f"Score : {d['score']}/100  ({d['grade']} – {d['grade_label']})")
+          print(f"Score : {d['score']}/100  ({d['grade']} - {d['grade_label']})")
           print(f"Issues: {d['summary']['total']} total "
                 f"({d['summary']['critical']} critical, "
                 f"{d['summary']['high']} high, "
